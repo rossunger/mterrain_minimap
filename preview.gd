@@ -13,6 +13,7 @@ var mgrass: MGrass
 var camera: Node3D
 
 var is_resizing = false
+var is_moving = false
 
 var MIN_POSITION
 var MAX_POSITION
@@ -63,15 +64,34 @@ func _input(event):
 		minimap.size.y = minimap.size.x / aspect_ratio
 		minimap.position.y = -minimap.size.y - MARGIN.y - position_offset.y
 
+	if is_moving and not is_resizing and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed == false:
+		is_moving = false		
+		var e = InputEventKey.new()
+		e.keycode = KEY_F
+		e.pressed = true
+		var marker = Node3D.new()
+		EditorInterface.get_edited_scene_root().add_child(marker)
+		marker.owner = EditorInterface.get_edited_scene_root()
+		marker.position = camera.position *2 - camera.basis.z
+		var original_selection = EditorInterface.get_selection().get_selected_nodes()[0]
+		EditorInterface.get_selection().clear()
+		EditorInterface.get_selection().add_node(marker)
+		Input.parse_input_event(e)		
+		marker.queue_free()
+		EditorInterface.get_selection().add_node(original_selection)
+
 func on_gui_input(event):	
 	if is_resizing: return
 	if (event is InputEventMouseButton and event.pressed) or (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
+		is_moving = true
+		
 		var x_percent = event.position.x / minimap.size.x
 		camera.position.x = mterrain.get_base_size() * mterrain.terrain_size.x * x_percent
 	
 		var y_percent = event.position.y / minimap.size.y
 		camera.position.z = mterrain.get_base_size() * mterrain.terrain_size.y * y_percent
-		pass
+		camera.position.y = mterrain.get_closest_height(camera.position) + 10
+
 
 func link_with_mterrain(new_mterrain: MTerrain, new_camera: Node3D):	
 	mterrain = new_mterrain		
